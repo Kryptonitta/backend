@@ -1,65 +1,103 @@
 const fs = require("fs");
 
-//defino la clase Product Manager
 class ProductManager {
 	constructor(path) {
 		this.path = path;
 	}
 
-	// defino el metodo addProduct
 	addProduct(product) {
-		const products = this.getProducts();
-		product.id = this.generateId(products);
-		products.push(product);
-		this.saveProducts(products);
+		try {
+			const requiredProperties = [
+				"title",
+				"description",
+				"price",
+				"thumbnail",
+				"code",
+				"stock",
+			];
+
+			const missingProperties = requiredProperties.filter(
+				(prop) => !(prop in product)
+			);
+			if (missingProperties.length > 0) {
+				throw new Error(
+					"Faltan propiedades requeridas: " + missingProperties.join(", ")
+				);
+			}
+
+			const products = this.getProducts();
+
+			const codeExists = products.some((p) => p.code === product.code);
+			if (codeExists) {
+				throw new Error("Código ya en uso");
+			}
+
+			product.id = this.generateId(products);
+			products.push(product);
+			this.saveProducts(products);
+		} catch (error) {
+			console.error("Error:", error.message);
+		}
 	}
 
-	// defino el metodo getProducts
 	getProducts() {
 		try {
 			const products = JSON.parse(fs.readFileSync(this.path, "utf-8"));
 			return products;
 		} catch (error) {
+			console.error("Error:", error.message);
 			return [];
 		}
 	}
 
-	//implemento el método getProductById
 	getProductById(id) {
-		const products = this.getProducts();
-		const product = products.find((p) => p.id === id);
-		if (!product) {
-			console.error("Error: Producto no encontrado");
-			return;
+		try {
+			const products = this.getProducts();
+			const product = products.find((p) => p.id === id);
+			if (!product) {
+				throw new Error("Producto no encontrado");
+			}
+			return product;
+		} catch (error) {
+			console.error("Error:", error.message);
+			return null;
 		}
-		return product;
 	}
 
-	//implemento el método updateProduct
-	updateProduct(id, product) {
-		const products = this.getProducts();
-		const index = products.findIndex((p) => p.id === id);
-		if (index === -1) {
-			console.error("Error: Producto no encontrado");
-			return;
+	updateProduct(id, updatedProduct) {
+		try {
+			const products = this.getProducts();
+			const index = products.findIndex((p) => p.id === id);
+
+			if (index === -1) {
+				throw new Error("Producto no encontrado");
+			}
+
+			const existingProduct = products[index];
+			const mergedProduct = { ...existingProduct, ...updatedProduct };
+			products[index] = mergedProduct;
+			this.saveProducts(products);
+		} catch (error) {
+			console.error("Error:", error.message);
 		}
-		products[index] = { ...product, id };
-		this.saveProducts(products);
 	}
 
-	//implemento el método deleteProduct
 	deleteProduct(id) {
-		const products = this.getProducts();
-		const index = products.findIndex((p) => p.id === id);
-		if (index === -1) {
-			console.error("Error: Producto no encontrado");
-			return;
+		try {
+			const products = this.getProducts();
+			const index = products.findIndex((p) => p.id === id);
+
+			if (index === -1) {
+				throw new Error("Producto no encontrado");
+			}
+
+			products.splice(index, 1);
+			this.saveProducts(products);
+		} catch (error) {
+			console.error("Error:", error.message);
 		}
-		products.splice(index, 1);
-		this.saveProducts(products);
 	}
 
-	//implemento el método generateId
 	generateId(products) {
 		let maxId = 0;
 		products.forEach((p) => {
@@ -70,9 +108,12 @@ class ProductManager {
 		return maxId + 1;
 	}
 
-	//implemento el método saveProducts
 	saveProducts(products) {
-		fs.writeFileSync(this.path, JSON.stringify(products, null, 2));
+		try {
+			fs.writeFileSync(this.path, JSON.stringify(products, null, 2));
+		} catch (error) {
+			console.error("Error:", error.message);
+		}
 	}
 }
 
@@ -104,7 +145,7 @@ productManager.updateProduct(2, {
 	description: "Color blue",
 	price: 15,
 	thumbnail: "img2.png",
-	code: "002",
+	code: "001",
 	stock: 10,
 });
 
